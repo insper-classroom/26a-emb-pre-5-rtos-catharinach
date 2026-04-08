@@ -5,6 +5,7 @@
 
 #include "pico/stdlib.h"
 #include <stdio.h>
+#include <stdbool.h>
 
 const int BTN_PIN_R = 28;
 const int BTN_PIN_G = 26;
@@ -14,6 +15,27 @@ const int LED_PIN_G = 6;
 
 SemaphoreHandle_t xSemaphore_r;
 SemaphoreHandle_t xSemaphore_g;
+
+volatile bool g_btn_r_pressed = false;
+volatile bool g_btn_g_pressed = false;
+
+void gpio_irq_callback(uint gpio, uint32_t events) {
+  if ((events & GPIO_IRQ_EDGE_FALL) == 0u) {
+    return;
+  }
+
+  if (gpio == BTN_PIN_R) {
+    g_btn_r_pressed = true;
+  } else if (gpio == BTN_PIN_G) {
+    g_btn_g_pressed = true;
+  }
+}
+
+void init_button_irq(uint pin) {
+  gpio_init(pin);
+  gpio_set_dir(pin, GPIO_IN);
+  gpio_pull_up(pin);
+}
 
 void led_1_task(void *p) {
   gpio_init(LED_PIN_R);
@@ -33,17 +55,12 @@ void led_1_task(void *p) {
 }
 
 void btn_1_task(void *p) {
-  gpio_init(BTN_PIN_R);
-  gpio_set_dir(BTN_PIN_R, GPIO_IN);
-  gpio_pull_up(BTN_PIN_R);
-
   while (true) {
-    if (!gpio_get(BTN_PIN_R)) {
-      while (!gpio_get(BTN_PIN_R)) {
-        vTaskDelay(pdMS_TO_TICKS(1));
-      }
+    if (g_btn_r_pressed) {
+      g_btn_r_pressed = false;
       xSemaphoreGive(xSemaphore_r);
     }
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
 
@@ -65,17 +82,12 @@ void led_2_task(void *p) {
 }
 
 void btn_2_task(void *p) {
-  gpio_init(BTN_PIN_G);
-  gpio_set_dir(BTN_PIN_G, GPIO_IN);
-  gpio_pull_up(BTN_PIN_G);
-
   while (true) {
-    if (!gpio_get(BTN_PIN_G)) {
-      while (!gpio_get(BTN_PIN_G)) {
-        vTaskDelay(pdMS_TO_TICKS(1));
-      }
+    if (g_btn_g_pressed) {
+      g_btn_g_pressed = false;
       xSemaphoreGive(xSemaphore_g);
     }
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
 
@@ -85,6 +97,13 @@ int main() {
 
   xSemaphore_r = xSemaphoreCreateBinary();
   xSemaphore_g = xSemaphoreCreateBinary();
+
+  init_button_irq(BTN_PIN_R);
+  init_button_irq(BTN_PIN_G);
+  gpio_set_irq_enabled_with_callback(BTN_PIN_R, GPIO_IRQ_EDGE_FALL, true,
+                                     &gpio_irq_callback);
+  gpio_set_irq_enabled(BTN_PIN_G, GPIO_IRQ_EDGE_FALL, true);
+
   xTaskCreate(led_1_task, "LED_Task 1", 256, NULL, 1, NULL);
   xTaskCreate(btn_1_task, "BTN_Task 1", 256, NULL, 1, NULL);
   xTaskCreate(led_2_task, "LED_Task 2", 256, NULL, 1, NULL);
