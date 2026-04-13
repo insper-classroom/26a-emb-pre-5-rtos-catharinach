@@ -24,11 +24,6 @@ const int BTN_PIN_Y = 21;
 const int LED_PIN_R = 5;
 const int LED_PIN_Y = 10;
 
-typedef struct {
-    int pin;
-    int delay;
-} but_t;
-
 QueueHandle_t xQueueBtn;
 
 SemaphoreHandle_t xSemaphoreLedR;
