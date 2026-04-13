@@ -54,10 +54,8 @@ void led_r_task(void *p) {
         if (xQueueReceive(xQueueButId, &msg, 0) == pdTRUE) {
             if (msg.pin == LED_PIN_R) {
                 delay = msg.delay;
-                // printf("led_r delay: %d\n", delay);
             } else {
-                // Não é para mim, devolve para a fila
-                xQueueSend(xQueueButId, &msg, 0);
+                xQueueSend(xQueueButId, &msg, 0); // Devolve para a fila, pois era para o outro LED
             }
         }
 
@@ -84,10 +82,8 @@ void led_y_task(void *p) {
         if (xQueueReceive(xQueueButId, &msg, 0) == pdTRUE) {
             if (msg.pin == LED_PIN_Y) {
                 delay = msg.delay;
-                // printf("led_y delay: %d\n", delay);
             } else {
-                // Não é para mim, devolve para a fila
-                xQueueSend(xQueueButId, &msg, 0);
+                xQueueSend(xQueueButId, &msg, 0); // Devolve para a fila, pois era para o outro LED
             }
         }
 
@@ -120,17 +116,15 @@ void btn_task(void *p) {
     bool y_active = false;
 
     while (true) {
-        if (xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(500)) == pdTRUE) {
+        if (xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(10)) == pdTRUE) {
             r_active = !r_active;
             but_t msg = {LED_PIN_R, r_active ? 100 : 0};
-            // printf("btn_r: %s\n", r_active ? "ON" : "OFF");
             xQueueSend(xQueueButId, &msg, 0);
         }
 
-        if (xSemaphoreTake(xSemaphore_y, pdMS_TO_TICKS(500)) == pdTRUE) {
+        if (xSemaphoreTake(xSemaphore_y, pdMS_TO_TICKS(10)) == pdTRUE) {
             y_active = !y_active;
             but_t msg = {LED_PIN_Y, y_active ? 100 : 0};
-            // printf("btn_y: %s\n", y_active ? "ON" : "OFF");
             xQueueSend(xQueueButId, &msg, 0);
         }
     }
