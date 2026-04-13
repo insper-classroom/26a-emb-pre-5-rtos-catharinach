@@ -125,7 +125,7 @@ int main() {
 
     xQueueButId = xQueueCreate(32, sizeof(int));
     xSemaphore_r = xSemaphoreCreateBinary();
-    xSemaphore_g = xSemaphoreCreateBinary();
+    xSemaphore_y = xSemaphoreCreateBinary();
 
 
     xTaskCreate(led_r_task, "LED_Task R", 256, NULL, 1, NULL);
